@@ -37,5 +37,4 @@ def delete_tempfiles( pelican ):
             remove( delete_list )
 
 def register():
-    print "Hello"
     signals.finalized.connect(delete_tempfiles)
