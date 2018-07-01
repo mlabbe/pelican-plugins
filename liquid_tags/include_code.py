@@ -6,13 +6,21 @@ based on the octopress video tag [1]_
 
 Syntax
 ------
-{% include_code path/to/code [lang:python] [Title text] %}
+{% include_code path/to/code [lang:python] [Title text] [codec:utf8] %}
 
 The "path to code" is specified relative to the ``code`` subdirectory of
 the content directory  Optionally, this subdirectory can be specified in the
 config file:
 
     CODE_DIR = 'code'
+
+If your input file is not ASCII/UTF-8 encoded, you need to specify the
+appropriate input codec by using the ``codec`` option.
+Example ``codec:iso-8859-1``
+Using this option does not affect the output encoding.
+
+For a list of valid codec identifiers, see
+https://docs.python.org/2/library/codecs.html#standard-encodings
 
 Example
 -------
@@ -31,15 +39,30 @@ in the STATIC_PATHS setting, e.g.:
 """
 import re
 import os
+import sys
 from .mdx_liquid_tags import LiquidTags
 
 
-SYNTAX = "{% include_code /path/to/code.py [lang:python] [title] %}"
-FORMAT = re.compile(r"""^(?:\s+)?(?P<src>\S+)(?:\s+)?(?:(?:lang:)(?P<lang>\S+))?(?:\s+)?(?P<title>.+)?$""")
+SYNTAX = "{% include_code /path/to/code.py [lang:python] [lines:X-Y] [:hidefilename:] [title] %}"
+FORMAT = re.compile(r"""
+^(?:\s+)?                          # Allow whitespace at beginning
+(?P<src>\S+)                       # Find the path
+(?:\s+)?                           # Whitespace
+(?:(?:lang:)(?P<lang>\S+))?        # Optional language
+(?:\s+)?                           # Whitespace
+(?:(?:lines:)(?P<lines>\d+-\d+))?  # Optional lines
+(?:\s+)?                           # Whitespace
+(?P<hidefilename>:hidefilename:)?  # Hidefilename flag
+(?:\s+)?                           # Whitespace
+(?:(?:codec:)(?P<codec>\S+))?        # Optional language
+(?:\s+)?                           # Whitespace
+(?P<title>.+)?$                    # Optional title
+""", re.VERBOSE)
 
 
 @LiquidTags.register('include_code')
 def include_code(preprocessor, tag, markup):
+
     title = None
     lang = None
     src = None
@@ -47,27 +70,42 @@ def include_code(preprocessor, tag, markup):
     match = FORMAT.search(markup)
     if match:
         argdict = match.groupdict()
-        title = argdict['title']
+        title = argdict['title'] or ""
         lang = argdict['lang']
+        codec = argdict['codec'] or "utf8"
+        lines = argdict['lines']
+        hide_filename = bool(argdict['hidefilename'])
+        if lines:
+            first_line, last_line = map(int, lines.split("-"))
         src = argdict['src']
 
     if not src:
         raise ValueError("Error processing input, "
                          "expected syntax: {0}".format(SYNTAX))
 
-    settings = preprocessor.configs.config['settings']
-    code_dir = settings.get('CODE_DIR', 'code')
+    code_dir = preprocessor.configs.getConfig('CODE_DIR')
     code_path = os.path.join('content', code_dir, src)
 
     if not os.path.exists(code_path):
         raise ValueError("File {0} could not be found".format(code_path))
 
-    code = open(code_path).read()
+    with open(code_path) as fh:
+        if lines:
+            code = fh.readlines()[first_line - 1: last_line]
+            code[-1] = code[-1].rstrip()
+            code = "".join(code)
+        else:
+            code = fh.read()
 
-    if title:
-        title = "{0} {1}".format(title, os.path.basename(src))
-    else:
-        title = os.path.basename(src)
+    if not title and hide_filename:
+        raise ValueError("Either title must be specified or filename must "
+                         "be available")
+
+    if not hide_filename:
+        title += " %s" % os.path.basename(src)
+    if lines:
+        title += " [Lines %s]" % lines
+    title = title.strip()
 
     url = '/{0}/{1}'.format(code_dir, src)
     url = re.sub('/+', '/', url)
@@ -87,11 +125,18 @@ def include_code(preprocessor, tag, markup):
     else:
         lang_include = ''
 
-    source = (open_tag
-              + '\n\n    '
-              + lang_include
-              + '\n    '.join(code.split('\n')) + '\n\n'
-              + close_tag + '\n')
+    if sys.version_info[0] < 3:
+        source = (open_tag
+                  + '\n\n    '
+                  + lang_include
+                  + '\n    '.join(code.decode(codec).split('\n')) + '\n\n'
+                  + close_tag + '\n')
+    else:
+        source = (open_tag
+                  + '\n\n    '
+                  + lang_include
+                  + '\n    '.join(code.split('\n')) + '\n\n'
+                  + close_tag + '\n')
 
     return source
 
