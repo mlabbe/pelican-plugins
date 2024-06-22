@@ -5,13 +5,12 @@
 Adds support for subcategories on pelican articles
 """
 import os
-from collections import defaultdict
 from operator import attrgetter
 from functools import partial
 
 from pelican import signals
 from pelican.urlwrappers import URLWrapper, Category
-from pelican.utils import (slugify, python_2_unicode_compatible)
+from pelican.utils import slugify
 
 from six import text_type
 
@@ -49,6 +48,9 @@ def get_subcategories(generator, metadata):
                 'subcategory', '{savepath}.html')
     if 'SUBCATEGORY_URL' not in generator.settings:
         generator.settings['SUBCATEGORY_URL'] = 'subcategory/{fullurl}.html'
+    if ('PAGINATED_TEMPLATES' in generator.settings and
+        'subcategory' not in generator.settings['PAGINATED_TEMPLATES']):
+        generator.settings['PAGINATED_TEMPLATES']['subcategory'] = None
 
     if 'subcategory_path' in metadata:
         category_list = text_type(metadata.get('subcategory_path')).split('/')
@@ -108,8 +110,8 @@ def generate_subcategories(generator, writer):
         dates = [article for article in generator.dates if article in articles]
         write(subcat.save_as, subcategory_template, generator.context, 
                 subcategory=subcat, articles=articles, dates=dates, 
-                paginated={'articles': articles, 'dates': dates},
-                page_name=subcat.page_name, all_articles=generator.articles)
+                template_name='subcategory', page_name=subcat.page_name,
+                all_articles=generator.articles)
 
 def generate_subcategory_feeds(generator, writer):
     for subcat, articles in generator.subcategories:

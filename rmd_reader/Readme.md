@@ -19,7 +19,7 @@ PLUGINS = ['sitemap',
 
 ## Dependency
 
-This plugin needs [rpy2](https://pypi.python.org/pypi/rpy2) to work.
+This plugin requires [rpy2](https://pypi.python.org/pypi/rpy2).
 Install it with:
 
 ```

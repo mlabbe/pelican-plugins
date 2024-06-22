@@ -43,7 +43,7 @@ class PlantUML_rst(Directive):
 
         try:
             uml_format = self.options.get('format', 'png')
-            url = global_siteurl+'/'+generate_uml_image(path, body, uml_format)
+            url = global_siteurl+'/images/'+generate_uml_image(path, body, uml_format)
         except Exception as exc:
             error = self.state_machine.reporter.error(
                 'Failed to run plantuml: %s' % exc,
@@ -80,7 +80,7 @@ def pelican_init(pelicanobj):
             pelicanobj.settings['MD_EXTENSIONS'].append(PlantUMLMarkdownExtension(config))
         elif 'MARKDOWN' in pelicanobj.settings.keys() and \
              not ('extension_configs' in pelicanobj.settings['MARKDOWN']['extension_configs']):  # from pelican 3.7.0
-            pelicanobj.settings['MARKDOWN']['extension_configs']['plantuml.plantuml_md'] = {}
+            pelicanobj.settings['MARKDOWN']['extension_configs']['plantuml.plantuml_md'] = config
     except:
         logger.error("[plantuml] Unable to configure plantuml markdown extension")
 

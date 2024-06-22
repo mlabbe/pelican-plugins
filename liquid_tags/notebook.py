@@ -284,7 +284,7 @@ def notebook(preprocessor, tag, markup):
     language_applied_highlighter = partial(custom_highlighter, language=language)
 
     nb_dir =  preprocessor.configs.getConfig('NOTEBOOK_DIR')
-    nb_path = os.path.join('content', nb_dir, src)
+    nb_path = os.path.join(settings.get('PATH', 'content'), nb_dir, src)
 
     if not os.path.exists(nb_path):
         raise ValueError("File {0} could not be found".format(nb_path))
@@ -344,7 +344,7 @@ def notebook(preprocessor, tag, markup):
 
     # this will stash special characters so that they won't be transformed
     # by subsequent processes.
-    body = preprocessor.configs.htmlStash.store(body, safe=True)
+    body = preprocessor.configs.htmlStash.store(body)
     return body
 
 notebook.header_saved = False

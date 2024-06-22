@@ -22,8 +22,12 @@ def startr():
     logger.debug('STARTING R')
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        import rpy2.rinterface
-        rpy2.rinterface.set_initoptions((b'rpy2', b'--no-save', b'--vanilla', b'--quiet'))
+        try:
+            import rpy2.rinterface
+            rpy2.rinterface.set_initoptions((b'rpy2', b'--no-save', b'--vanilla', b'--quiet'))
+        except AttributeError:
+            from rpy2.rinterface_lib import embedded
+            embedded.set_initoptions(("rpy2", "--no-save", "--vanilla", "--quiet"))
         import rpy2.robjects as R_OBJECTS
         from rpy2.robjects.packages import importr
     KNITR = importr('knitr')
@@ -34,9 +38,6 @@ def initsignal(pelicanobj):
     global RMD, FIG_PATH
     try:
         startr()
-        R_OBJECTS.r('Sys.setlocale("LC_ALL", "C")')
-        R_OBJECTS.r('Sys.setlocale("LC_NUMERIC", "C")')
-        R_OBJECTS.r('Sys.setlocale("LC_MESSAGES", "C")')
         
         idx = KNITR.opts_knit.names.index('set')
         path = pelicanobj.settings.get('PATH','%s/content' % settings.DEFAULT_CONFIG.get('PATH'))
@@ -104,7 +105,7 @@ class RmdReader(readers.BaseReader):
 opts_knit$set(unnamed.chunk.label="{unnamed_chunk_label}")
 render_markdown()
 hook_plot <- knit_hooks$get('plot')
-knit_hooks$set(plot=function(x, options) hook_plot(paste0("{{filename}}/", x), options))
+knit_hooks$set(plot=function(x, options) hook_plot(paste0("{{static}}/", x), options))
             '''.format(unnamed_chunk_label=chunk_label))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
