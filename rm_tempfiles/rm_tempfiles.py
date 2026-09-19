@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # A list of temp file wildcards
 TEMPFILES = [
     '*~',
-    '\#*#',
+    '\\#*#',
 ]
 
 def remove( delete_list ):
